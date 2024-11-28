@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const path = require("path");
 
 const connectDB = require("./config/db");
 const productRoutes = require("./routes/productRoutes");
@@ -11,11 +12,13 @@ connectDB();
 
 const app = express();
 app.use(express.json());
-app.use(cors({
-    origin: '*'
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
 app.use("/api/products", productRoutes);
 app.use("/api/vendors", vendorRoutes);
 

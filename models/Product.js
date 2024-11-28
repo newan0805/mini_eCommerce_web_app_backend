@@ -7,6 +7,7 @@ const productSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, min: 0 },
     description: { type: String },
     images: [{ url: String, isThumbnail: Boolean }],
+    price: { type: Number, required: true, min: 0, get: (v) => parseFloat(v) },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
