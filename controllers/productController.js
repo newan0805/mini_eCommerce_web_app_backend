@@ -29,11 +29,11 @@ exports.addProduct = async (req, res) => {
         .json({ error: "All required fields must be filled." });
     }
 
-    let images = [];
+    let images = [{ url: "", isThumbnail: null }];
     if (req.files && req.files.length > 0) {
-      images = req.files.map((file, index) => ({
-        url: `/uploads/${file.filename}` || "",
-        isThumbnail: index === 0 || "",
+      let images = req.files.map((file, index) => ({
+        url: `/uploads/${file.filename}`,
+        isThumbnail: index === 0,
       }));
     }
 
