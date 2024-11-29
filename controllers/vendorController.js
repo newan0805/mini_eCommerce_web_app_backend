@@ -51,7 +51,7 @@ exports.loginVendor = async (req, res) => {
 
 exports.getVendorProfile = async (req, res) => {
   try {
-    const vendor = await Vendor.findById(req.vendor.id).select("-password"); 
+    const vendor = await Vendor.findById(req.user.id).select("-password"); 
 
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
