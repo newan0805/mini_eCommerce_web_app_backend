@@ -17,6 +17,7 @@ app.use(
     origin: "*",
   })
 );
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/products", productRoutes);

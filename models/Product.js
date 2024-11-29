@@ -6,7 +6,6 @@ const productSchema = new mongoose.Schema(
     name: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0 },
     description: { type: String },
-    images: [{ url: String, isThumbnail: Boolean }],
     price: { type: Number, required: true, min: 0, get: (v) => parseFloat(v) },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -14,6 +13,13 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     isFavorite: { type: Boolean, default: false },
+    images: [
+      {
+        filename: { type: String, required: true },
+        path: { type: String, required: true },
+        size: { type: Number, required: true },
+      },
+    ],
   },
   { timestamps: true }
 );

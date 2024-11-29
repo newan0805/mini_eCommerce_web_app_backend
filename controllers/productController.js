@@ -1,60 +1,71 @@
 const Product = require("../models/Product");
+const upload = require("../middleware/upload");
+const authMiddleware = require("../middleware/authMiddleware");
 
-// exports.addProduct = async (req, res) => {
-//   try {
-//     const product = await Product.create(req.body);
-//     res.status(201).json(product);
-//   } catch (err) {
-//     res.status(400).json({ error: err.message });
-//   }
-// };
+const validateFields = (req, res, next) => {
+  const { sku, name, quantity, description, price, createdBy } = req.body;
 
-exports.addProduct = async (req, res) => {
-  try {
-    console.log(req.body);
-    const { sku, name, quantity, description, price, createdBy, isFavorite } =
-      req.body;
-
-    if (
-      !sku ||
-      !name ||
-      !quantity ||
-      !description ||
-      !price ||
-      !createdBy ||
-      isFavorite === undefined
-    ) {
-      return res
-        .status(400)
-        .json({ error: "All required fields must be filled." });
-    }
-
-    let images = [{ url: "", isThumbnail: null }];
-    if (req.files && req.files.length > 0) {
-      let images = req.files.map((file, index) => ({
-        url: `/uploads/${file.filename}`,
-        isThumbnail: index === 0,
-      }));
-    }
-
-    // Create the product in the database
-    const product = await Product.create({
-      sku,
-      name,
-      quantity,
-      description,
-      price,
-      images,
-      createdBy,
-      isFavorite,
+  if (
+    (!sku && sku == "") ||
+    !name ||
+    !quantity ||
+    !description ||
+    price == null ||
+    !createdBy
+  ) {
+    return res.status(400).json({
+      error: "All required fields must be filled.",
+      missingFields: {
+        sku,
+        name,
+        quantity,
+        description,
+        price,
+        createdBy,
+      },
     });
-
-    res.status(201).json(product);
-  } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: err.message });
   }
+  next();
+  //   upload;
 };
+
+exports.addProduct = [
+  authMiddleware,
+  //   validateFields,
+  upload.array("images"),
+  async (req, res) => {
+    try {
+      const { sku, name, quantity, description, price, isFavorite } = req.body;
+
+      //   const images = req.files.map((file, index) => ({
+      //     url: `/uploads/${file.filename}`,
+      //     isThumbnail: index === 0,
+      //   }));
+
+      const images = req.files.map((file) => ({
+        filename: file.filename, // Use the filename from multer
+        path: `/uploads/${file.filename}`, // Construct the path to the uploaded file
+        size: file.size, // File size from multer
+      }));
+
+      const product = await Product.create({
+        sku,
+        name,
+        quantity,
+        description,
+        price,
+        images,
+        createdBy: req.user.id,
+        isFavorite: isFavorite !== undefined ? isFavorite : false,
+      });
+
+      res.status(201).json(product);
+    } catch (err) {
+      console.error("Error: ", err);
+      res.status(400).json({ error: err.message });
+    }
+  },
+];
 
 exports.getProductsList = async (req, res) => {
   try {
