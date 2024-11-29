@@ -7,7 +7,6 @@ const vendorSchema = new mongoose.Schema({
   password: { type: String, required: true },
 });
 
-// Encrypt password before saving
 vendorSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
