@@ -2,6 +2,9 @@ const Product = require("../models/Product");
 const upload = require("../middleware/upload");
 const authMiddleware = require("../middleware/authMiddleware");
 
+const fs = require("fs");
+const path = require("path");
+
 const validateFields = (req, res, next) => {
   const { sku, name, quantity, description, price, createdBy } = req.body;
 
@@ -43,9 +46,9 @@ exports.addProduct = [
       //   }));
 
       const images = req.files.map((file) => ({
-        filename: file.filename, // Use the filename from multer
-        path: `/uploads/${file.filename}`, // Construct the path to the uploaded file
-        size: file.size, // File size from multer
+        filename: file.filename,
+        path: `/uploads/${file.filename}`,
+        size: file.size,
       }));
 
       const product = await Product.create({
@@ -85,23 +88,92 @@ exports.getProduct = async (req, res) => {
   }
 };
 
-exports.updateProduct = async (req, res) => {
-  try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    if (!product) return res.status(404).json({ error: "Product not found" });
-    res.status(200).json(product);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
+// exports.updateProduct = async (req, res) => {
+//   try {
+//     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+//       new: true,
+//     });
+//     if (!product) return res.status(404).json({ error: "Product not found" });
+//     res.status(200).json(product);
+//   } catch (err) {
+//     res.status(400).json({ error: err.message });
+//   }
+// };
+
+exports.updateProduct = [
+  authMiddleware,
+  upload.array("images"),
+
+  async (req, res) => {
+    try {
+      const { sku, name, quantity, description, price, isFavorite } = req.body;
+
+      const images = req.files.map((file, index) => ({
+        filename: file.filename,
+        path: `/uploads/${file.filename}`,
+        size: file.size,
+        isThumbnail: index === 0,
+      }));
+
+      const updatedProductData = {
+        sku,
+        name,
+        quantity,
+        description,
+        price,
+        images,
+        isFavorite: isFavorite !== undefined ? isFavorite : false,
+      };
+
+      const product = await Product.findByIdAndUpdate(
+        req.params.id,
+        updatedProductData,
+        {
+          new: true,
+        }
+      );
+
+      if (!product) return res.status(404).json({ error: "Product not found" });
+
+      res.status(200).json(product);
+    } catch (err) {
+      console.log("Error: ", err);
+      res.status(400).json({ error: err.message });
+    }
+  },
+];
+
+// exports.deleteProduct = async (req, res) => {
+//   try {
+//     const product = await Product.findByIdAndDelete(req.params.id);
+//     if (!product) return res.status(404).json({ error: "Product not found" });
+//     res.status(200).json({ message: "Product deleted successfully" });
+//   } catch (err) {
+//     res.status(400).json({ error: err.message });
+//   }
+// };
 
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: "Product not found" });
-    res.status(200).json({ message: "Product deleted successfully" });
+
+    if (product.images && product.images.length > 0) {
+      product.images.forEach((image) => {
+        if (image.path) {
+          const filePath = path.join(__dirname, "..", "uploads", image.path);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
+      });
+    }
+
+    await Product.findByIdAndDelete(req.params.id);
+    res
+      .status(200)
+      .json({ message: "Product and related images deleted successfully" });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
