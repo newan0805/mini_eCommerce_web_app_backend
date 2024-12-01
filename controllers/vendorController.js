@@ -1,6 +1,7 @@
 const Vendor = require("../models/Vendor");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -35,23 +36,23 @@ exports.loginVendor = async (req, res) => {
   try {
     const vendor = await Vendor.findOne({ email });
     if (vendor && (await bcrypt.compare(password, vendor.password))) {
-        res.status(200).json({
-            _id: vendor._id,
-            name: vendor.name,
-            email: vendor.email,
-            token: generateToken(vendor._id),
-        });
+      res.status(200).json({
+        _id: vendor._id,
+        name: vendor.name,
+        email: vendor.email,
+        token: generateToken(vendor._id),
+      });
     } else {
-        res.status(401).json({ error: "Invalid email or password" });
+      res.status(401).json({ error: "Invalid email or password" });
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-exports.getVendorProfile = async (req, res) => {
+exports.getVendorProfile = [authMiddleware, async (req, res) => {
   try {
-    const vendor = await Vendor.findById(req.user.id).select("-password"); 
+    const vendor = await Vendor.findById(req.user.id).select("-password");
 
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
@@ -60,4 +61,4 @@ exports.getVendorProfile = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-};
+}];
